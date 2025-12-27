@@ -11,7 +11,7 @@ namespace backup_system.models
         public List<string> Targets { get; set; }
 
         [JsonPropertyName("timing")]
-        public string Timing { get; set; } // minute - hour - dayInMonth - month - dayInWeek (CRON)
+        public string Timing { get; set; }
 
         [JsonPropertyName("retention")]
         public BackupRetention Retention { get; set; } = new();

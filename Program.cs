@@ -22,20 +22,33 @@ namespace backup_system
             // Process and schedule each job
             foreach (var job in jobs)
             {
-                var detail = JobBuilder.Create<QuartzBackupJob>()
-                    .UsingJobData(new JobDataMap
-                    {
+                try
+                {
+                    // Converted CRON timing
+                    string quartzCron = ConvertUnixToQuartzCron(job.Timing);
+
+                    // Job details
+                    var detail = JobBuilder.Create<QuartzBackupJob>()
+                        .UsingJobData(new JobDataMap
+                        {
                         { "job", job }
-                    })
-                    .Build();
+                        })
+                        .Build();
 
-                var trigger = TriggerBuilder.Create()
-                    .WithCronSchedule(ConvertUnixToQuartzCron(job.Timing))
-                    .Build();
+                    // Job trigger (CRON/timing)
+                    var trigger = TriggerBuilder.Create()
+                        .WithCronSchedule(quartzCron)
+                        .Build();
 
-                await scheduler.ScheduleJob(detail, trigger);
+                    // Scheduling 
+                    await scheduler.ScheduleJob(detail, trigger);
 
-                Console.WriteLine($"[Program] Backup scheduled on {trigger.GetNextFireTimeUtc()?.ToLocalTime()}");
+                    Console.WriteLine($"[Program] Backup scheduled on {trigger.GetNextFireTimeUtc()?.ToLocalTime()}");
+                }
+                catch (Exception e)
+                {
+                    Console.Error.WriteLine($"[Program] Failed to schedule job: {e.Message}");
+                }
             }
 
             await Task.Delay(Timeout.Infinite);
@@ -68,11 +81,24 @@ namespace backup_system
         {
             var parts = unixCron.Split(' ');
             if (parts.Length != 5)
-            {
-                Console.Error.WriteLine($"[Program] Invalid CRON length");
-            }
+                Console.Error.WriteLine($"[Program] Invalid CRON length (check config.json).");
 
-            return $"0 {parts[0]} {parts[1]} {parts[2]} {parts[3]} ?";
+            // Checking that there is only dayInMonth OR dayInWeek, not both
+            if (parts[2] != "*")
+            {
+                if (parts[4] == "*")
+                    return $"0 {parts[0]} {parts[1]} {parts[2]} {parts[3]} ?";
+                else
+                    // return invalid CRON and let scheduler handle it
+                    return $"0 {parts[0]} {parts[1]} {parts[2]} {parts[3]} {parts[4]}";
+            }
+            else
+            {
+                if (parts[4] != "*")
+                    return $"0 {parts[0]} {parts[1]} ? {parts[3]} {parts[4]}";
+                else
+                    return $"0 {parts[0]} {parts[1]} * {parts[3]} ?";
+            }
         }
     }
 }
