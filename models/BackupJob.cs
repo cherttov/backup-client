@@ -22,7 +22,7 @@ namespace backup_system.models
         // Constructor for deserialization
         public BackupJob() { }
 
-        // Constructor
+        // Constructor (not needed but whatever, it was in the assignment I got so why tf would I care)
         public BackupJob(List<string> sources, 
                          List<string> targets, 
                          string timing, 

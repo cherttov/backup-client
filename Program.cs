@@ -11,13 +11,15 @@ namespace backup_system
     {
         static async Task Main()
         {
+            // Read config to jobs
             string configPath = "../../../data/config.json";
-
             List<BackupJob> jobs = ReadConfig(configPath);
 
+            // Create scheduler
             var scheduler = await StdSchedulerFactory.GetDefaultScheduler();
             await scheduler.Start();
 
+            // Process and schedule each job
             foreach (var job in jobs)
             {
                 var detail = JobBuilder.Create<QuartzBackupJob>()
@@ -28,10 +30,12 @@ namespace backup_system
                     .Build();
 
                 var trigger = TriggerBuilder.Create()
-                    .StartNow()
+                    .WithCronSchedule(ConvertUnixToQuartzCron(job.Timing))
                     .Build();
 
                 await scheduler.ScheduleJob(detail, trigger);
+
+                Console.WriteLine($"[Program] Backup scheduled on {trigger.GetNextFireTimeUtc()?.ToLocalTime()}");
             }
 
             await Task.Delay(Timeout.Infinite);
@@ -58,6 +62,17 @@ namespace backup_system
             }
 
             return jobEntries;
+        }
+
+        private static string ConvertUnixToQuartzCron(string unixCron)
+        {
+            var parts = unixCron.Split(' ');
+            if (parts.Length != 5)
+            {
+                Console.Error.WriteLine($"[Program] Invalid CRON length");
+            }
+
+            return $"0 {parts[0]} {parts[1]} {parts[2]} {parts[3]} ?";
         }
     }
 }
