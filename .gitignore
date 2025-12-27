@@ -1,0 +1,9 @@
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+[Bb]in/
+[Oo]bj/
+/*.exe
+data/
