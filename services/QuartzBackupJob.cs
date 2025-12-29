@@ -14,6 +14,12 @@ namespace backup_system.services
                 BackupExecutor executor = new BackupExecutor();
                 executor.RunBackup(job);
 
+                // Next schedule message
+                DateTimeOffset? nextSchedule = context.Trigger.GetNextFireTimeUtc();
+
+                if (nextSchedule.HasValue)
+                    Console.WriteLine($"[Program] Backup scheduled on {nextSchedule.Value.ToLocalTime()}");
+
                 return Task.CompletedTask;
             }
             catch (Exception e)

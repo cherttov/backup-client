@@ -7,9 +7,9 @@
       "..\\..\\..\\virtual_dirs\\targets_dir\\DokumentyZaloha"
     ],
     "method": "full",
-    "timing": "23 * * * *",
+    "timing": "* * * * *",
     "retention": {
-      "count": 10,
+      "count": 3,
       "size": 5
     }
   }

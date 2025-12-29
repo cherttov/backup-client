@@ -43,6 +43,7 @@ namespace backup_system
                     // Scheduling 
                     await scheduler.ScheduleJob(detail, trigger);
 
+                    // Initial schedule message
                     Console.WriteLine($"[Program] Backup scheduled on {trigger.GetNextFireTimeUtc()?.ToLocalTime()}");
                 }
                 catch (Exception e)
