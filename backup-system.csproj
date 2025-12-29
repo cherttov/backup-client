@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <Folder Include="virtual_dirs\sources_dir\Hry\" />
-    <Folder Include="virtual_dirs\sources_dir\Dokumenty\" />
     <Folder Include="virtual_dirs\sources_dir\Filmy\" />
     <Folder Include="virtual_dirs\targets_dir\DokumentyZaloha\" />
     <Folder Include="virtual_dirs\targets_dir\HryZaloha\" />

@@ -16,11 +16,11 @@ namespace backup_system
             List<BackupJob> jobs = ReadConfig(configPath);
 
             // Create scheduler
-            var scheduler = await StdSchedulerFactory.GetDefaultScheduler();
+            IScheduler scheduler = await StdSchedulerFactory.GetDefaultScheduler();
             await scheduler.Start();
 
             // Process and schedule each job
-            foreach (var job in jobs)
+            foreach (BackupJob job in jobs)
             {
                 try
                 {
@@ -28,15 +28,15 @@ namespace backup_system
                     string quartzCron = ConvertUnixToQuartzCron(job.Timing);
 
                     // Job details
-                    var detail = JobBuilder.Create<QuartzBackupJob>()
+                    IJobDetail detail = JobBuilder.Create<QuartzBackupJob>()
                         .UsingJobData(new JobDataMap
                         {
-                        { "job", job }
+                            { "job", job }
                         })
                         .Build();
 
                     // Job trigger (CRON/timing)
-                    var trigger = TriggerBuilder.Create()
+                    ITrigger trigger = TriggerBuilder.Create()
                         .WithCronSchedule(quartzCron)
                         .Build();
 
@@ -64,7 +64,7 @@ namespace backup_system
                 string data = File.ReadAllText(path);
                 if (!string.IsNullOrEmpty(data))
                 {
-                    var options = new JsonSerializerOptions
+                    JsonSerializerOptions options = new JsonSerializerOptions
                     {
                         PropertyNameCaseInsensitive = true,
                         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
@@ -79,7 +79,7 @@ namespace backup_system
 
         private static string ConvertUnixToQuartzCron(string unixCron)
         {
-            var parts = unixCron.Split(' ');
+            string[] parts = unixCron.Split(' ');
             if (parts.Length != 5)
                 Console.Error.WriteLine($"[Program] Invalid CRON length (check config.json).");
 

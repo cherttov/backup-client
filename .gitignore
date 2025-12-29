@@ -6,4 +6,4 @@
 [Bb]in/
 [Oo]bj/
 /*.exe
-data/
+virtual_dirs/

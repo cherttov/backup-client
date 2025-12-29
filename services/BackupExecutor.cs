@@ -1,4 +1,6 @@
 ﻿using backup_system.models;
+using System.Diagnostics;
+using System.IO;
 
 namespace backup_system.services
 {
@@ -38,31 +40,71 @@ namespace backup_system.services
         // Full backup
         private void RunFullBackup(BackupJob job) 
         {
-            foreach (var target in job.Targets)
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            int filesCopied = 0;
+            long totalBytes = 0;
+
+            try
             {
-                try
+                foreach (string rawSource in job.Sources)
                 {
+                    string source = Path.GetFullPath(rawSource);
+                    DirectoryInfo sourceDir = new DirectoryInfo(source);
+
+                    if (!sourceDir.Exists)
+                        throw new DirectoryNotFoundException($"[BackupExecutor] Source directory not found: {source}");
+
+                    foreach (string rawTarget in job.Targets)
+                    {
+                        string target = Path.GetFullPath(rawTarget);
+
+                        // Get all files
+                        FileInfo[] allFiles = sourceDir.GetFiles("*", SearchOption.AllDirectories);
+
+                        // Copy all files
+                        foreach (FileInfo file in allFiles)
+                        {
+                            string relSrcFilePath = Path.GetRelativePath(source, file.FullName);
+
+                            string targetFilePath = Path.Combine(target, relSrcFilePath);
+
+                            // Create sub-directories
+                            string? targetDir = Path.GetDirectoryName(targetFilePath);
+                            if (targetDir != null)
+                            {
+                                Directory.CreateDirectory(targetDir);
+                            }
+
+                            file.CopyTo(targetFilePath, true);
+
+                            // Stats & debug
+                            filesCopied++;
+                            totalBytes += file.Length;
+                        }
+                    }
                 }
-                catch (Exception e)
-                {
-                    Console.Error.WriteLine($"[BackupExecutor] Failed to write file to target '{target}: {e.Message}");
-                }
+
+                stopwatch.Stop();
+                Console.WriteLine("------------------------------------------------------");
+                Console.WriteLine("[BackupExecutor] Full backup completed successfully.");
+                Console.WriteLine($"[Summary] Files: {filesCopied} | Size: {totalBytes / 1024 / 1024} MB | Time: {stopwatch.Elapsed.TotalSeconds:F2}s");
+                Console.WriteLine("------------------------------------------------------");
             }
-            Console.WriteLine("[BackupExecutor] Full backup completed.");
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($"[BackupExecutor] Failed to write file to target: {e.Message}");
+            }
         }
 
         // Differential backup
         private void RunDifferentialBackup(BackupJob job) 
         {
-            foreach (var target in job.Targets)
+            try
             {
-                try
-                {
-                }
-                catch (Exception e)
-                {
-                    Console.Error.WriteLine($"[BackupExecutor] Failed to write file to target '{target}: {e.Message}");
-                }
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($"[BackupExecutor] Failed to write file to target: {e.Message}");
             }
             Console.WriteLine("[BackupExecutor] Differential backup completed.");
         }
@@ -70,15 +112,12 @@ namespace backup_system.services
         // Incremental backup
         private void RunIncrementalBackup(BackupJob job) 
         {
-            foreach (var target in job.Targets)
+            try
             {
-                try
-                {
-                }
-                catch (Exception e)
-                {
-                    Console.Error.WriteLine($"[BackupExecutor] Failed to write file to target '{target}: {e.Message}");
-                }
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($"[BackupExecutor] Failed to write file to target: {e.Message}");
             }
             Console.WriteLine("[BackupExecutor] Incremental backup completed.");
         }

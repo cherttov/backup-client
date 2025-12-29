@@ -9,9 +9,9 @@ namespace backup_system.services
         {
             try
             {
-                var job = (BackupJob)context.MergedJobDataMap["job"];
+                BackupJob job = (BackupJob)context.MergedJobDataMap["job"];
 
-                var executor = new BackupExecutor();
+                BackupExecutor executor = new BackupExecutor();
                 executor.RunBackup(job);
 
                 return Task.CompletedTask;
