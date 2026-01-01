@@ -1,7 +1,7 @@
 ﻿using Quartz;
-using backup_system.models;
+using backup_client.models;
 
-namespace backup_system.services
+namespace backup_client.services
 {
     public class QuartzBackupJob : IJob
     {

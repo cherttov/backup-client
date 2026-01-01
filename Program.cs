@@ -1,18 +1,19 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using backup_system.models;
-using backup_system.services;
+using backup_client.models;
+using backup_client.services;
 using Quartz;
 using Quartz.Impl;
 
-namespace backup_system
+namespace backup_client
 {
     public class Program
     {
         static async Task Main()
         {
             // Read config to jobs
-            string configPath = "../../../data/config.json";
+            string baseDir = AppContext.BaseDirectory;
+            string configPath = Path.Combine(baseDir, "data", "config.json"); //"../../../data/config.json";
             List<BackupJob> jobs = ReadConfig(configPath);
 
             // Create scheduler

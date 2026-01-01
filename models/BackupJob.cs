@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace backup_system.models
+namespace backup_client.models
 {
     public class BackupJob
     {

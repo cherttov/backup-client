@@ -1,8 +1,8 @@
-﻿using backup_system.models;
+﻿using backup_client.models;
 using System.Diagnostics;
 using System.IO;
 
-namespace backup_system.services
+namespace backup_client.services
 {
     public class BackupExecutor
     {
@@ -70,7 +70,7 @@ namespace backup_system.services
                         string target = Path.GetFullPath(rawTarget);
 
                         // Create a container (for full it's useless, but keeps the structure cleaner for other methods)
-                        string containerName = $"Container_{DateTime.Now:yyyyMMdd_HHmmss}";
+                        string containerName = $"Container_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}";
                         string containerPath = Path.Combine(target, containerName);
 
                         // Add -DateTime_FULL to directory name

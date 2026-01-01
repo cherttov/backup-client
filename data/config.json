@@ -1,10 +1,10 @@
 ﻿[
   {
     "sources": [
-      "..\\..\\..\\virtual_dirs\\sources_dir\\Dokumenty"
+      ""
     ],
     "targets": [
-      "..\\..\\..\\virtual_dirs\\targets_dir\\DokumentyZaloha"
+      ""
     ],
     "method": "full",
     "timing": "* * * * *",
