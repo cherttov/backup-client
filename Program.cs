@@ -48,7 +48,7 @@ namespace backup_system
                 }
                 catch (Exception e)
                 {
-                    Console.Error.WriteLine($"[Program] Failed to schedule job: {e.Message}");
+                    Console.Error.WriteLine($"[Program][ERROR] Failed to schedule job: {e.Message}");
                 }
             }
 
@@ -82,7 +82,7 @@ namespace backup_system
         {
             string[] parts = unixCron.Split(' ');
             if (parts.Length != 5)
-                Console.Error.WriteLine($"[Program] Invalid CRON length (check config.json).");
+                Console.Error.WriteLine($"[Program][ERROR] Invalid CRON length (check config.json).");
 
             // Checking that there is only dayInMonth OR dayInWeek, not both
             if (parts[2] != "*")

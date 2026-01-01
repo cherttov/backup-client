@@ -39,7 +39,7 @@ namespace backup_system.services
                         RunIncrementalBackup(job);
                         break;
                     default:
-                        Console.WriteLine("|__ [BackupExecutor] Unknown backup, defaulting to full.");
+                        Console.WriteLine("|__ [BackupExecutor][ERROR] Unknown backup, defaulting to full.");
                         RunFullBackup(job);
                         break;
                 }
@@ -63,23 +63,26 @@ namespace backup_system.services
 
                     // Check if source directory exists
                     if (!sourceDir.Exists)
-                        throw new DirectoryNotFoundException($"|__ [BackupExecutor] Source directory not found: {source}");
+                        throw new DirectoryNotFoundException($"|__ [BackupExecutor][ERROR] Source directory not found: {source}");
 
                     foreach (string rawTarget in job.Targets)
                     {
                         string target = Path.GetFullPath(rawTarget);
 
+                        // Create a container (for full it's useless, but keeps the structure cleaner for other methods)
+                        string containerName = $"Container_{DateTime.Now:yyyyMMdd_HHmmss}";
+                        string containerPath = Path.Combine(target, containerName);
+
                         // Add -DateTime_FULL to directory name
                         string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-                        string fullBackupFolderName = $"{timestamp}_FULL";
-                        string outputBackupDir = Path.Combine(target, fullBackupFolderName);
+                        string fullBackupFolderName = $"Part_{timestamp}_FULL";
+                        string outputBackupDir = Path.Combine(containerPath, fullBackupFolderName);
 
                         Directory.CreateDirectory(outputBackupDir);
 
-                        // Get all files (including in sub-dirs)
+                        // Get & copy all files (including in sub-dirs)
                         FileInfo[] allFiles = sourceDir.GetFiles("*", SearchOption.AllDirectories);
 
-                        // Copy all files
                         foreach (FileInfo file in allFiles)
                         {
                             // Relative source file path -> to get just the sub-dir/file instead of full 'C:/Documents/test.txt' path
@@ -89,10 +92,10 @@ namespace backup_system.services
                             string targetFilePath = Path.Combine(outputBackupDir, relSrcFilePath);
 
                             // Create sub-directories
-                            string? targetDir = Path.GetDirectoryName(targetFilePath);
-                            if (targetDir != null)
+                            string? targetDirName = Path.GetDirectoryName(targetFilePath);
+                            if (targetDirName != null)
                             {
-                                Directory.CreateDirectory(targetDir);
+                                Directory.CreateDirectory(targetDirName);
                             }
 
                             file.CopyTo(targetFilePath, true);
@@ -111,7 +114,7 @@ namespace backup_system.services
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine($"|__ [BackupExecutor] Failed to write file to target: {e.Message}");
+                Console.Error.WriteLine($"|__ [BackupExecutor][ERROR] Failed to write file to target: {e.Message}");
             }
         }
 
@@ -123,22 +126,108 @@ namespace backup_system.services
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine($"|__ [BackupExecutor] Failed to write file to target: {e.Message}");
+                Console.Error.WriteLine($"|__ [BackupExecutor][ERROR] Failed to write file to target: {e.Message}");
             }
-            Console.WriteLine("|__ [BackupExecutor] Differential backup completed.");
         }
 
         // Incremental backup
         private void RunIncrementalBackup(BackupJob job) 
         {
+            // Stats & debug init
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            int filesCopied = 0;
+            long totalBytes = 0;
+
             try
             {
+                foreach (string rawSource in job.Sources)
+                {
+                    string source = Path.GetFullPath(rawSource);
+                    DirectoryInfo sourceDir = new DirectoryInfo(source);
+
+                    // Check if source directory exists
+                    if (!sourceDir.Exists)
+                        throw new DirectoryNotFoundException($"|__ [BackupExecutor][ERROR] Source directory not found: {source}");
+
+                    foreach (string rawTarget in job.Targets)
+                    {
+                        string target = Path.GetFullPath(rawTarget);
+                        DirectoryInfo targetDir = new DirectoryInfo(target);
+
+                        // Find latest container
+                        DirectoryInfo? latestContainer = targetDir.GetDirectories("Container_*")
+                            .OrderByDescending(d => d.CreationTime)
+                            .FirstOrDefault();
+
+                        // This shouldn't happen (RunRetentionPolicy() takes care of it), but just in case
+                        if (latestContainer == null)
+                        {
+                            Console.WriteLine($"|__ [BackupExecutor][ERROR] No existing container found.");
+                            continue;
+                        }
+
+                        // Find latest part
+                        DirectoryInfo? lastPart = latestContainer.GetDirectories("Part_*")
+                            .OrderByDescending(d => d.CreationTime)
+                            .FirstOrDefault();
+
+                        // This shouldn't happen as well, but just in case
+                        if (lastPart == null)
+                        {
+                            Console.WriteLine($"|__ [BackupExecutor][ERROR] Missing the necessary initial full backup.");
+                            continue;
+                        }
+
+                        // Cutoff DateTime from which to increment
+                        DateTime lastBackupTime = lastPart.CreationTime;
+
+                        // Add -DateTime_INCR to directory name
+                        string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+                        string fullBackupFolderName = $"Part_{timestamp}_INCR";
+                        string outputBackupDir = Path.Combine(latestContainer.FullName, fullBackupFolderName);
+
+                        Directory.CreateDirectory(outputBackupDir);
+
+                        // Get & copy all files (including in sub-dirs)
+                        FileInfo[] allFiles = sourceDir.GetFiles("*", SearchOption.AllDirectories);
+
+                        foreach (FileInfo file in allFiles)
+                        {
+                            // If newer than last backup -> save
+                            if (file.LastWriteTime >= lastBackupTime || file.CreationTime >= lastBackupTime)
+                            {
+                                // Relative source file path
+                                string relSrcFilePath = Path.GetRelativePath(source, file.FullName);
+
+                                // Final target file path with custom root directory
+                                string targetFilePath = Path.Combine(outputBackupDir, relSrcFilePath);
+
+                                // Create sub-directories
+                                string? targetDirName = Path.GetDirectoryName(targetFilePath);
+                                if (targetDirName != null)
+                                {
+                                    Directory.CreateDirectory(targetDirName);
+                                }
+
+                                file.CopyTo(targetFilePath, true);
+
+                                // Stats & debug calculate
+                                filesCopied++;
+                                totalBytes += file.Length;
+                            }
+                        }
+                    }
+                }
+
+                // Stats & debug output
+                stopwatch.Stop();
+                Console.WriteLine("    |__ [BackupExecutor] Incremental backup completed successfully.");
+                Console.WriteLine($"    |__ [Summary] Files: {filesCopied} | Size: {totalBytes / 1024 / 1024} MB | Time: {stopwatch.Elapsed.TotalSeconds:F2}s");
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine($"|__ [BackupExecutor] Failed to write file to target: {e.Message}");
+                Console.Error.WriteLine($"|__ [BackupExecutor][ERROR] Failed to write file to target: {e.Message}");
             }
-            Console.WriteLine("|__ [BackupExecutor] Incremental backup completed.");
         }
 
         // Retention policy check
@@ -160,48 +249,67 @@ namespace backup_system.services
                     continue;
                 }
 
-                // Count policy
-                List<DirectoryInfo> backups = targetDir.GetDirectories("*_FULL")
+                // Get all containers
+                List<DirectoryInfo> containers = targetDir.GetDirectories("Container_*")
                     .OrderBy(d => d.CreationTime)
                     .ToList();
-
-                int backupsToDelete = backups.Count - maxHistory;
-
-                if (backupsToDelete >= 0)
-                {
-                    // '<=' because we run it before another backup
-                    for (int i = 0; i <= backupsToDelete; i++)
-                    {
-                        // Edge case scenario because of '<='
-                        if (i < backups.Count)
-                        {
-                            backups[i].Delete(true);
-                        }
-                    }
-
-                    // Update backups list
-                    backups = targetDir.GetDirectories("*_FULL")
-                    .OrderBy(d => d.CreationTime)
-                    .ToList();
-                }
 
                 // Size policy
-                if (backups.Count == 0)
+                if (containers.Count == 0)
                 {
                     forceFull = true;
                 }
                 else
                 {
-                    DirectoryInfo latestBackup = backups.Last();
+                    DirectoryInfo latestContainer = containers.Last();
 
-                    int currentCount = latestBackup.GetFiles().Length;
+                    int currentPartCount = latestContainer.GetDirectories("Part_*").Length;
 
-                    if (currentCount > maxIncrementals)
+                    if (currentPartCount >= maxIncrementals)
                         forceFull = true;
+                }
+
+                // Count policy
+                int currentContainerCount = containers.Count;
+                int containersToDelete = 0;
+
+                if (forceFull || job.Method == BackupMethod.Full)
+                {
+                    // New container is going to be created
+                    if (currentContainerCount >= maxHistory)
+                        containersToDelete = (currentContainerCount - maxHistory) + 1;
+                }
+                else
+                {
+                    // We are staying in the existing container (delete if already over the limit)
+                    if (currentContainerCount > maxHistory)
+                        containersToDelete = currentContainerCount - maxHistory;
+                }
+
+                if (containersToDelete > 0)
+                {
+                    containersToDelete = Math.Min(containersToDelete, containers.Count);
+
+                    for (int i = 0; i < containersToDelete; i++)
+                    {
+                        try
+                        {
+                            containers[i].Delete(true);
+                        }
+                        catch (Exception e)
+                        {
+                            Console.Error.WriteLine($"|__ [BackupExecutor][ERROR] Failed to delete container: {e.Message}");
+                        }
+                    }
+
+                    // Update backups list
+                    containers = targetDir.GetDirectories("Container_*")
+                    .OrderBy(d => d.CreationTime)
+                    .ToList();
                 }
             }
 
-            // Exception for FULL backup (ignore SIZE)
+            // Exception for FULL backup (ignore size & print 'full' instead of 'forced_full')
             if (job.Method == BackupMethod.Full) 
                 return false;
 
