@@ -62,7 +62,18 @@ namespace backup_system
 
             if (File.Exists(path))
             {
-                string data = File.ReadAllText(path);
+                string data;
+
+                try
+                {
+                    data = File.ReadAllText(path);
+                }
+                catch (Exception e)
+                {
+                    Console.Error.WriteLine($"[Program][ERROR] Failed to read config: {e.Message}");
+                    return jobEntries;
+                }
+                
                 if (!string.IsNullOrEmpty(data))
                 {
                     JsonSerializerOptions options = new JsonSerializerOptions
@@ -73,11 +84,20 @@ namespace backup_system
 
                     jobEntries = JsonSerializer.Deserialize<List<BackupJob>>(data, options)!;
                 }
+                else
+                {
+                    return jobEntries;
+                }
+            }
+            else
+            {
+                Console.Error.WriteLine($"[Program][ERROR] Config file not found.");
             }
 
             return jobEntries;
         }
 
+        // Convert UNIX CRON to Quartz compatible CRON (later change UNIX CRON format in config.json)
         private static string ConvertUnixToQuartzCron(string unixCron)
         {
             string[] parts = unixCron.Split(' ');

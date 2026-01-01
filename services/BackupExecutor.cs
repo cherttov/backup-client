@@ -147,7 +147,10 @@ namespace backup_system.services
 
                     // Check if source directory exists
                     if (!sourceDir.Exists)
-                        throw new DirectoryNotFoundException($"|__ [BackupExecutor][ERROR] Source directory not found: {source}");
+                    {
+                        Console.Error.WriteLine($"|__ [BackupExecutor][ERROR] Source directory not found: {source}");
+                        continue;
+                    }
 
                     foreach (string rawTarget in job.Targets)
                     {
@@ -162,7 +165,7 @@ namespace backup_system.services
                         // This shouldn't happen (RunRetentionPolicy() takes care of it), but just in case
                         if (latestContainer == null)
                         {
-                            Console.WriteLine($"|__ [BackupExecutor][ERROR] No existing container found.");
+                            Console.Error.WriteLine($"|__ [BackupExecutor][ERROR] No existing container found.");
                             continue;
                         }
 
@@ -174,7 +177,7 @@ namespace backup_system.services
                         // This shouldn't happen as well, but just in case
                         if (lastPart == null)
                         {
-                            Console.WriteLine($"|__ [BackupExecutor][ERROR] Missing the necessary initial full backup.");
+                            Console.Error.WriteLine($"|__ [BackupExecutor][ERROR] Missing the necessary initial full backup.");
                             continue;
                         }
 

@@ -24,7 +24,7 @@ namespace backup_system.services
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine($"[QuartzBackupJob][ERROR] Exception: {e}");
+                Console.Error.WriteLine($"|__ [QuartzBackupJob][ERROR] Exception: {e}");
                 throw;
             }
         }

@@ -6,11 +6,11 @@
     "targets": [
       "..\\..\\..\\virtual_dirs\\targets_dir\\DokumentyZaloha"
     ],
-    "method": "incremental",
+    "method": "full",
     "timing": "* * * * *",
     "retention": {
       "count": 2,
-      "size": 4
+      "size": 3
     }
   }
 ]
