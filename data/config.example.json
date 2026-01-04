@@ -1,0 +1,16 @@
+[
+  {
+    "sources": [
+      "./Placeholder/Source"
+    ],
+    "targets": [
+      "./Placeholder/Target"
+    ],
+    "method": "full",
+    "timing": "0 0 12 * * ?",
+    "retention": {
+      "count": 5,
+      "size": 5
+    }
+  }
+]

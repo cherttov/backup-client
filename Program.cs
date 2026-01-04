@@ -14,6 +14,24 @@ namespace backup_client
             // Read config to jobs
             string baseDir = AppContext.BaseDirectory;
             string configPath = Path.Combine(baseDir, "data", "config.json");
+            string examplePath = Path.Combine(baseDir, "data", "config.example.json");
+
+            // Check if untouched release version or not
+            if (!File.Exists(configPath))
+            {
+                if (File.Exists(examplePath))
+                {
+                    File.Copy(examplePath, configPath);
+                    Console.WriteLine($"[Program][SETUP] Created default config.json at: {configPath}");
+                    Console.WriteLine("[Program][SETUP] Edit the default config.json before restarting the application");
+                }
+                else
+                {
+                    Console.WriteLine("[Program][SETUP][ERROR] Configuration file is missing.");
+                }
+                return;
+            }
+
             List<BackupJob> jobs = ReadConfig(configPath);
 
             // Create scheduler

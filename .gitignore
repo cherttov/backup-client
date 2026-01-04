@@ -6,4 +6,4 @@
 [Bb]in/
 [Oo]bj/
 /*.exe
-virtual_dirs/
+data/config.json
