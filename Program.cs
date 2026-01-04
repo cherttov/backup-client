@@ -13,7 +13,7 @@ namespace backup_client
         {
             // Read config to jobs
             string baseDir = AppContext.BaseDirectory;
-            string configPath = Path.Combine(baseDir, "data", "config.json"); //"../../../data/config.json";
+            string configPath = Path.Combine(baseDir, "data", "config.json");
             List<BackupJob> jobs = ReadConfig(configPath);
 
             // Create scheduler
@@ -101,26 +101,52 @@ namespace backup_client
         // Convert UNIX CRON to Quartz compatible CRON (later change UNIX CRON format in config.json)
         private static string ConvertUnixToQuartzCron(string unixCron)
         {
-            string[] parts = unixCron.Split(' ');
-            if (parts.Length != 5)
-                Console.Error.WriteLine($"[Program][ERROR] Invalid CRON length (check config.json).");
+            const string SAFE_CRON = "0 0 0 1 1 ? 2099"; // so it doesn't return null
 
-            // Checking that there is only dayInMonth OR dayInWeek, not both
-            if (parts[2] != "*")
+            // Check if empty
+            if (string.IsNullOrWhiteSpace(unixCron))
             {
-                if (parts[4] == "*")
-                    return $"0 {parts[0]} {parts[1]} {parts[2]} {parts[3]} ?";
-                else
-                    // return invalid CRON and let scheduler handle it
-                    return $"0 {parts[0]} {parts[1]} {parts[2]} {parts[3]} {parts[4]}";
+                Console.Error.WriteLine("[Program][ERROR] Found empty CRON expression in config.json.");
+                return SAFE_CRON;
             }
+
+            // Trim & add 'seconds' to 5 length standard
+            List<string> parts = unixCron.Trim().Split(' ').ToList();
+            if (parts.Count == 5)
+                parts.Insert(0, "0");
+
+            // Check others lengths
+            if (parts.Count < 6 || parts.Count > 7)
+            {
+                Console.Error.WriteLine("[Program][ERROR] Invalid CRON length (expected 5, 6 or 7).");
+                return SAFE_CRON;
+            }
+
+            // Fix "* *" -> "* ?"
+            if (parts[3] == "*" && parts[5] == "*")
+                parts[5] = "?";
+            // Fix "? ?" -> "* ?" (assume daily)
+            else if (parts[3] == "?" && parts[5] == "?")
+                parts[3] = "*";
+            // Fix "* x" -> "? x"
+            else if (parts[3] == "*" && parts[5] != "*" && parts[5] != "?")
+                parts[3] = "?";
+            // Fix "x *" -> "x ?"
+            else if (parts[3] != "*" && parts[3] != "?" && parts[5] == "*")
+                parts[5] = "?";
+            // Allow valid "* ?" or "? *"
+            else if ((parts[3] == "*" && parts[5] == "?") || (parts[3] == "?" && parts[5] == "*")) 
+                { }
+            // Allow valid "? x" or "x ?"
+            else if ((parts[3] == "?" && parts[5] != "?" && parts[5] != "*") || (parts[3] != "*" && parts[3] != "?" && parts[5] == "?")) 
+                { }
             else
             {
-                if (parts[4] != "*")
-                    return $"0 {parts[0]} {parts[1]} ? {parts[3]} {parts[4]}";
-                else
-                    return $"0 {parts[0]} {parts[1]} * {parts[3]} ?";
+                Console.Error.WriteLine("[Program][ERROR] Invalid CRON format.");
+                return SAFE_CRON;
             }
+
+            return string.Join(" ", parts);
         }
     }
 }

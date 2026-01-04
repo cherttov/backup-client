@@ -1,13 +1,13 @@
 ﻿[
   {
     "sources": [
-      ""
+      "C:/Users/Tymofii Chertov/Nevim/Programming/csharp/BACKUP/sources/Documents"
     ],
     "targets": [
-      ""
+      "C:/Users/Tymofii Chertov/Nevim/Programming/csharp/BACKUP/targets/DocumentsBackup"
     ],
     "method": "full",
-    "timing": "* * * * *",
+    "timing": "0 * * * * ?",
     "retention": {
       "count": 2,
       "size": 3
