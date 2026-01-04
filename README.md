@@ -3,16 +3,20 @@
 - This application runs as a continuous background service using [Quartz.NET](https://github.com/quartznet/quartznet)
 
 ## Configuration
-- Configuration file **config.json** is stored in the `data/` directory
+- The configuration file **config.json** is created in the `data/` directory on the first run
+- Change the `sources` and `targets` parameters after **config.json** is created
+
 ### > Configuration Properties
+> **Note:** Parameters in parentheses are optional. Use the `LinuxCRON` or `QuartzCRON` standard
 
 | Property    | Description                                                            |
 |-------------|------------------------------------------------------------------------|
 | `sources`   | List of source directories to backup                                   |
 | `targets`   | List of destination directories where backups are going to be stored   |
 | `method`    | Backup method: `full`, `incremental` or `differential`                 |
-| `timing`    | CRON expression: `Minute Hour Day Month Weekday`                       |
+| `timing`    | CRON expression: `(Second) Minute Hour Day Month Weekday (Year)`       |
 | `retention` | Policy settings: `Count` (History limit) and `Size` (Chain length)     |
+
   
 ### > Example Config
 ```json
@@ -37,5 +41,3 @@
    |__[Summary] Files: 6 | Size: 48 MB | Time: 0,03s
 [Program] Backup scheduled on 1.2.2026 17:00:00 +01:00
 ```
-
-> **Note:** This project was made for a school assignment, but it will be refactored and improved later on (especially the CRON format)
