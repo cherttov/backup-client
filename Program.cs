@@ -29,6 +29,7 @@ namespace backup_client
                 {
                     Console.WriteLine("[Program][SETUP][ERROR] Configuration file is missing.");
                 }
+                Console.ReadLine();
                 return;
             }
 
