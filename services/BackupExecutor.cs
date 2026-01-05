@@ -53,6 +53,7 @@ namespace backup_client.services
             Stopwatch stopwatch = Stopwatch.StartNew();
             int filesCopied = 0;
             long totalBytes = 0;
+            bool hasErrors = false;
 
             try
             {
@@ -63,7 +64,11 @@ namespace backup_client.services
 
                     // Check if source directory exists
                     if (!sourceDir.Exists)
-                        throw new DirectoryNotFoundException($"|__ [BackupExecutor][ERROR] Source directory not found: {source}");
+                    {
+                        Console.Error.WriteLine($"|__ [BackupExecutor][ERROR] Source directory not found: {source}");
+                        hasErrors = true;
+                        continue;
+                    }
 
                     foreach (string rawTarget in job.Targets)
                     {
@@ -109,7 +114,14 @@ namespace backup_client.services
 
                 // Stats & debug output
                 stopwatch.Stop();
-                Console.WriteLine("    |__ [BackupExecutor] Full backup completed successfully.");
+                if (hasErrors)
+                {
+                    Console.WriteLine("    |__ [BackupExecutor][WARNING] Full backup completed with errors.");
+                }
+                else
+                {
+                    Console.WriteLine("    |__ [BackupExecutor] Full backup completed successfully.");
+                }
                 Console.WriteLine($"    |__ [Summary] Files: {filesCopied} | Size: {totalBytes / 1024 / 1024} MB | Time: {stopwatch.Elapsed.TotalSeconds:F2}s");
             }
             catch (Exception e)
@@ -121,8 +133,37 @@ namespace backup_client.services
         // Differential backup
         private void RunDifferentialBackup(BackupJob job) 
         {
+            // Stats & debug init
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            int filesCopied = 0;
+            long totalBytes = 0;
+            bool hasErrors = false;
+
             try
             {
+                foreach (string rawSource in job.Sources)
+                {
+                    string source = Path.GetFullPath(rawSource);
+                    DirectoryInfo sourceDir = new DirectoryInfo(source);
+
+                    if (!sourceDir.Exists)
+                    {
+                        Console.Error.WriteLine($"|__ [BackupExecutor][ERROR] Source directory not found: {source}");
+                        hasErrors = true;
+                        continue;
+                    }
+                }
+                // Stats & debug output
+                stopwatch.Stop();
+                if (hasErrors)
+                {
+                    Console.WriteLine("    |__ [BackupExecutor][WARNING] Full backup completed with errors.");
+                }
+                else
+                {
+                    Console.WriteLine("    |__ [BackupExecutor] Full backup completed successfully.");
+                }
+                Console.WriteLine($"    |__ [Summary] Files: {filesCopied} | Size: {totalBytes / 1024 / 1024} MB | Time: {stopwatch.Elapsed.TotalSeconds:F2}s");
             }
             catch (Exception e)
             {
@@ -137,6 +178,7 @@ namespace backup_client.services
             Stopwatch stopwatch = Stopwatch.StartNew();
             int filesCopied = 0;
             long totalBytes = 0;
+            bool hasErrors = false;
 
             try
             {
@@ -149,6 +191,7 @@ namespace backup_client.services
                     if (!sourceDir.Exists)
                     {
                         Console.Error.WriteLine($"|__ [BackupExecutor][ERROR] Source directory not found: {source}");
+                        hasErrors = true;
                         continue;
                     }
 
@@ -166,6 +209,7 @@ namespace backup_client.services
                         if (latestContainer == null)
                         {
                             Console.Error.WriteLine($"|__ [BackupExecutor][ERROR] No existing container found.");
+                            hasErrors = true;
                             continue;
                         }
 
@@ -178,6 +222,7 @@ namespace backup_client.services
                         if (lastPart == null)
                         {
                             Console.Error.WriteLine($"|__ [BackupExecutor][ERROR] Missing the necessary initial full backup.");
+                            hasErrors = true;
                             continue;
                         }
 
@@ -224,7 +269,14 @@ namespace backup_client.services
 
                 // Stats & debug output
                 stopwatch.Stop();
-                Console.WriteLine("    |__ [BackupExecutor] Incremental backup completed successfully.");
+                if (hasErrors)
+                {
+                    Console.WriteLine("    |__ [BackupExecutor][WARNING] Full backup completed with errors.");
+                }
+                else
+                {
+                    Console.WriteLine("    |__ [BackupExecutor] Full backup completed successfully.");
+                }
                 Console.WriteLine($"    |__ [Summary] Files: {filesCopied} | Size: {totalBytes / 1024 / 1024} MB | Time: {stopwatch.Elapsed.TotalSeconds:F2}s");
             }
             catch (Exception e)
