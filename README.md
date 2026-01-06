@@ -33,6 +33,8 @@
   }
 ]
 ```
+> **Note:** When running in `Debug` mode in *Visual Studio*, the **config.json** file has to be created manually beforehand
+
 ### > Example output
 ```plaintext
 [Program] Backup scheduled on 1.1.2026 17:00:00 +01:00
